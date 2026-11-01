@@ -1,0 +1,75 @@
+ARG BASE_VERSION=15
+FROM ghcr.io/daemonless/base-exec:${BASE_VERSION}
+
+ARG FREEBSD_ARCH=amd64
+# The compiled Python deps come from pkg; pip installs only pure-Python ones.
+ARG PACKAGES="python3 py312-sqlite3 py312-pillow py312-psycopg2 py312-pydantic2 py312-pydantic-core py312-pyyaml"
+ARG UPSTREAM_URL="https://api.github.com/repos/babybuddy/babybuddy/releases/latest"
+ARG UPSTREAM_JQ=".tag_name"
+{%- if ports %}
+ARG HEALTHCHECK_ENDPOINT="http://localhost:{{ ports[0].port }}/login/"
+{%- else %}
+ARG HEALTHCHECK_ENDPOINT="http://localhost:8000/login/"
+{%- endif %}
+
+ENV HEALTHCHECK_URL="${HEALTHCHECK_ENDPOINT}"
+
+# --- Metadata (Injected by Generator) ---
+LABEL org.opencontainers.image.title="{{ title }}" \
+      org.opencontainers.image.description="{{ description }}" \
+      org.opencontainers.image.source="{{ repo_url }}" \
+      org.opencontainers.image.url="{{ web_url }}" \
+      org.opencontainers.image.documentation="https://docs.baby-buddy.net/" \
+      org.opencontainers.image.licenses="BSD-2-Clause" \
+      org.opencontainers.image.vendor="daemonless" \
+      org.opencontainers.image.authors="daemonless" \
+      io.daemonless.category="{{ category }}" \
+{%- if ports %}
+      io.daemonless.port="{{ ports[0].port }}" \
+{%- endif %}
+{%- if volumes %}
+      io.daemonless.volumes="{{ volumes | map(attribute='path') | join(',') }}" \
+{%- endif %}
+      io.daemonless.arch="${FREEBSD_ARCH}" \
+      io.daemonless.upstream-url="${UPSTREAM_URL}" \
+      io.daemonless.upstream-jq="${UPSTREAM_JQ}" \
+      io.daemonless.healthcheck-url="${HEALTHCHECK_ENDPOINT}" \
+      io.daemonless.packages="${PACKAGES}"
+
+# Install dependencies
+RUN pkg update && \
+    pkg install -y ${PACKAGES} && \
+    pkg clean -ay && \
+    rm -rf /var/cache/pkg/* /var/db/pkg/repos/*
+
+# Download Baby Buddy and install its pure-Python deps into a venv that sees
+# the pkg ones. The compiled deps are dropped from requirements.txt: a newer
+# pin there would make pip build them from source, and psycopg2-binary has no
+# FreeBSD wheel.
+RUN BABYBUDDY_VERSION=$(fetch -qo - "${UPSTREAM_URL}" | jq -r "${UPSTREAM_JQ}") && \
+    mkdir -p /app/babybuddy && \
+    fetch -qo - "https://github.com/babybuddy/babybuddy/archive/refs/tags/${BABYBUDDY_VERSION}.tar.gz" | \
+    tar xzf - -C /app/babybuddy --strip-components=1 && \
+    grep -viE '^(pillow|psycopg2-binary|pydantic|pydantic-core|pyyaml)==' /app/babybuddy/requirements.txt \
+        > /tmp/requirements.txt && \
+    python3 -m venv --system-site-packages /app/venv && \
+    /app/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt && \
+    rm /tmp/requirements.txt && \
+    echo "${BABYBUDDY_VERSION#v}" > /app/version && \
+    chmod -R a+rX /app
+
+# Copy root filesystem
+COPY root/ /
+RUN chmod +x /daemonless/libexec/babybuddy /healthz
+
+CMD ["/daemonless/libexec/babybuddy"]
+
+# --- Expose (Injected by Generator) ---
+{%- if ports %}
+EXPOSE {{ ports | map(attribute='port') | join(' ') }}
+{%- endif %}
+
+# --- Volumes (Injected by Generator) ---
+{%- if volumes %}
+VOLUME {{ volumes | map(attribute='path') | join(' ') }}
+{%- endif %}

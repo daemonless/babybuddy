@@ -1,0 +1,15 @@
+# dbuild configuration file
+# Full reference: https://github.com/daemonless/dbuild
+
+build:
+  variants:
+    - tag: latest
+      containerfile: Containerfile
+      default: true
+
+cit:
+  mode: screenshot
+  port: 8000
+  health: /login/
+  ready: "Listening at: http://0.0.0.0:8000"
+  wait: 300

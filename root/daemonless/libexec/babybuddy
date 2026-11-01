@@ -1,0 +1,27 @@
+#!/bin/sh
+# Start Baby Buddy; /init has already dropped to the run user.
+set -e
+
+export HOME=/config
+export DJANGO_SETTINGS_MODULE=babybuddy.settings.daemonless
+export PATH="/app/venv/bin:$PATH"
+
+# A secret key is generated once and kept, so sessions survive restarts.
+if [ -z "${SECRET_KEY:-}" ]; then
+	if [ ! -s /config/.secretkey ]; then
+		python3 -c 'import secrets; print(secrets.token_urlsafe(50))' > /config/.secretkey
+		chmod 600 /config/.secretkey
+	fi
+	SECRET_KEY=$(cat /config/.secretkey)
+	export SECRET_KEY
+fi
+
+mkdir -p /config/media
+cd /app/babybuddy
+python3 manage.py migrate --noinput
+python3 manage.py createcachetable
+
+exec gunicorn babybuddy.wsgi:application \
+	--bind 0.0.0.0:8000 \
+	--timeout 30 \
+	--log-file -

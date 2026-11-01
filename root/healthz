@@ -1,0 +1,4 @@
+#!/bin/sh
+# Daemonless standard healthcheck for babybuddy
+
+fetch -qo /dev/null "http://127.0.0.1:8000/login/" >/dev/null 2>&1
