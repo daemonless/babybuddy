@@ -1,11 +1,11 @@
 {
-  "generated": "2026-11-01T10:03:42Z",
+  "generated": "2026-11-04T11:54:05Z",
   "image": "babybuddy",
   "tags": {
     "latest": {
       "app_version": "2.11.0",
       "arch": "amd64",
-      "generated": "2026-11-01T10:02:42Z",
+      "generated": "2026-11-04T11:53:12Z",
       "packages": {
         "dotnet": [],
         "freebsd": [
@@ -280,7 +280,7 @@
               "MIT"
             ],
             "name": "expat",
-            "version": "2.8.4"
+            "version": "2.9.0"
           },
           {
             "licenses": [
@@ -604,7 +604,7 @@
               "MIT-CMU"
             ],
             "name": "py312-pillow",
-            "version": "12.3.0"
+            "version": "13.0.0"
           },
           {
             "licenses": [
@@ -692,7 +692,7 @@
               "PD"
             ],
             "name": "sqlite3",
-            "version": "3.53.4,1"
+            "version": "3.54.1,1"
           },
           {
             "licenses": [
@@ -904,7 +904,7 @@
           {
             "name": "pillow",
             "purl": "",
-            "version": "12.3.0"
+            "version": "13.0.0"
           },
           {
             "name": "pip",
